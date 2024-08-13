@@ -1,4 +1,4 @@
-import { getAlbums as getAlbumsV1, getAlbumById as getAlbumByIdV1 } from "./v1/albumHandler.js";
+import { getAlbums as getAlbumsV1, getAlbumById as getAlbumByIdV1, createAlbum as createAlbumV1 } from "./v1/albumHandler.js";
 import { routeNotFound } from "./commonHandler.js";
 
 const routeHandler = (req,res) => {
@@ -10,6 +10,10 @@ const routeHandler = (req,res) => {
         // GET: /api/v1/albums
         if (req.url === '/api/v1/albums' && req.method === 'GET') {
             getAlbumsV1(res);
+        }
+        // POST: /api/v1/albums
+        else if (req.url === '/api/v1/albums' && req.method === 'POST') {
+            createAlbumV1(req, res);
         }
         // GET: /api/v1/albums/:id
         else if (req.url.match(/\/api\/v1\/albums\/([0-9]+)/) && req.method === 'GET') {
