@@ -1,4 +1,4 @@
-import { getAlbums as getAlbumsV1, getAlbumById as getAlbumByIdV1, createAlbum as createAlbumV1, updateAlbum as updateAlbumV1, updateAlbumName as updateAlbumNameV1} from "./v1/albumHandler.js";
+import { getAlbums as getAlbumsV1, getAlbumById as getAlbumByIdV1, createAlbum as createAlbumV1, updateAlbum as updateAlbumV1, updateAlbumName as updateAlbumNameV1, deleteAlbum as deleteAlbumV1} from "./v1/albumHandler.js";
 import { routeNotFound } from "./commonHandler.js";
 
 const routeHandler = (req,res) => {
@@ -22,6 +22,10 @@ const routeHandler = (req,res) => {
         // PATCH: /api/v1/albums/:id @params: name
         else if (req.url.match(/\/api\/v1\/albums\/([0-9]+)/) && req.method === 'PATCH') {
             updateAlbumNameV1(req, res);
+        }
+        // DELETE: /api/v1/albums/:id
+        else if (req.url.match(/\/api\/v1\/albums\/([0-9]+)/) && req.method === 'DELETE') {
+            deleteAlbumV1(req, res);
         }
         // GET: /api/v1/albums/:id
         else if (req.url.match(/\/api\/v1\/albums\/([0-9]+)/) && req.method === 'GET') {

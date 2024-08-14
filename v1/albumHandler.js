@@ -123,3 +123,22 @@ export const updateAlbumName = async (req,res) =>{
         }
     })
 }
+
+export const deleteAlbum = async (req,res) => {
+    const id = req.url.split('/')[4];
+    try {
+        const result = await qry('DELETE FROM albums WHERE id = ?',[id]);
+        if (result.affectedRows > 0) {
+            res.statusCode = 200;
+            res.end(JSON.stringify({message: 'Album Removed'}));
+        } 
+        else {
+            res.statusCode = 404;
+            res.end(JSON.stringify({ error: 'Album not found' }));
+        }
+    } 
+    catch (error) {
+        res.statusCode = 400;
+        res.end(JSON.stringify({error: `${err}`}));
+    }
+}
