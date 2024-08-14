@@ -17,7 +17,7 @@ const pool = createPool({
 //         return;
 //     }
 //     console.log('Connected to the database as ID', connection.threadId);
-    
+
 //     connection.release();
 // });
 
