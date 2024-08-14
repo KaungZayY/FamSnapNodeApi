@@ -59,3 +59,67 @@ export const createAlbum = async (req,res) =>{
         }
     })
 }
+
+export const updateAlbum = async (req,res) =>{
+    let body = '';
+    const id = req.url.split('/')[4];
+    req.on('data',(chunk)=>{
+        body += chunk.toString();
+    });
+    req.on('end',async()=>{
+        try {
+            const {name, description} = JSON.parse(body);
+            if(!name){
+                res.statusCode = 400;
+                res.end(JSON.stringify({error: 'Album name is required!'}));
+                return;
+            }
+            const result = await qry('UPDATE albums SET name = ?, description = ? WHERE id = ?',[name, description, id]);
+            if (result.affectedRows > 0) {
+                const album = await qry('SELECT * FROM albums WHERE id = ?',[id]);
+                res.statusCode = 200;
+                res.end(JSON.stringify(album[0]));
+            } 
+            else {
+                res.statusCode = 404;
+                res.end(JSON.stringify({ error: 'Album not found' }));
+            }
+        } 
+        catch (error) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: `Server error: ${err}` }));
+        }
+    })
+}
+
+export const updateAlbumName = async (req,res) =>{
+    let body = '';
+    const id = req.url.split('/')[4];
+    req.on('data',(chunk)=>{
+        body += chunk.toString();
+    });
+    req.on('end',async()=>{
+        try {
+            const { name } = JSON.parse(body);
+            if(!name){
+                res.statusCode = 400;
+                res.end(JSON.stringify({error: 'Album name is required!'}));
+                return;
+            }
+            const result = await qry('UPDATE albums SET name = ? WHERE id = ?',[name, id]);
+            if (result.affectedRows > 0) {
+                const album = await qry('SELECT * FROM albums WHERE id = ?',[id]);
+                res.statusCode = 200;
+                res.end(JSON.stringify(album[0]));
+            } 
+            else {
+                res.statusCode = 404;
+                res.end(JSON.stringify({ error: 'Album not found' }));
+            }
+        } 
+        catch (error) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: `Server error: ${err}` }));
+        }
+    })
+}
