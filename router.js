@@ -34,70 +34,117 @@ const staticFileRoutes = (req, res) => {
 
 const apiRoutes = (req, res) => {
     res.setHeader('Content-Type', 'application/json');
-    const apiVersion = req.url.split('/')[2];
+    const [,, apiVersion, resource, id] = req.url.split('/');
 
     // api v1
     if (apiVersion === 'v1') {
-        // GET: /api/v1/albums
-        if (req.url === '/api/v1/albums' && req.method === 'GET') {
-            getAlbumsV1(res);
+        const method = req.method;
+
+        switch (resource) {
+            case 'albums':
+                switch (method) {
+                    case 'GET':
+                        if (id) {
+                            // GET: /api/v1/albums/:id
+                            getAlbumByIdV1(req, res);
+                        } else {
+                            // GET: /api/v1/albums
+                            getAlbumsV1(res);
+                        }
+                        break;
+                    case 'POST':
+                        // POST: /api/v1/albums @params: name, description
+                        createAlbumV1(req, res);
+                        break;
+                    case 'PUT':
+                        if (id) {
+                            // PUT: /api/v1/albums/:id @params: name, description
+                            updateAlbumV1(req, res);
+                        } else {
+                            routeNotFound(res);
+                        }
+                        break;
+                    case 'PATCH':
+                        if (id) {
+                            // PATCH: /api/v1/albums/:id @params: name
+                            updateAlbumNameV1(req, res);
+                        } else {
+                            routeNotFound(res);
+                        }
+                        break;
+                    case 'DELETE':
+                        if (id) {
+                            // DELETE: /api/v1/albums/:id
+                            deleteAlbumV1(req, res);
+                        } else {
+                            routeNotFound(res);
+                        }
+                        break;
+                    default:
+                        routeNotFound(res);
+                        break;
+                }
+                break;
+
+            case 'images':
+                switch (method) {
+                    case 'GET':
+                        if (id) {
+                            // GET: /api/v1/imagaes/:id
+                            getImageByIdV1(req, res);
+                        } else {
+                            // GET: /api/v1/images
+                            getImagesV1(res);
+                        }
+                        break;
+                    case 'POST':
+                        // POST: /api/v1/images @params: title, image, album_id
+                        if (req.url === '/api/v1/images/upload') {
+                            imageUploadV1(req, res);
+                        } else {
+                            // POST: /api/v1/images @params: form-data image
+                            createImageV1(req, res);
+                        }
+                        break;
+                    case 'PUT':
+                        if (id) {
+                            // PUT: /api/v1/images/:id @params: title, image, album_id
+                            updateImageV1(req, res);
+                        } else {
+                            routeNotFound(res);
+                        }
+                        break;
+                    case 'PATCH':
+                        if (id) {
+                            // PATCH: /api/v1/images/:id @params: title || image || album_id
+                            updateImagePatchV1(req, res);
+                        } else {
+                            routeNotFound(res);
+                        }
+                        break;
+                    case 'DELETE':
+                        if (id) {
+                            // DELETE: /api/v1/images/:id
+                            deleteImageV1(req, res);
+                        } else {
+                            routeNotFound(res);
+                        }
+                        break;
+                    default:
+                        routeNotFound(res);
+                        break;
+                }
+                break;
+
+            default:
+                routeNotFound(res);
+                break;
         }
-        // GET: /api/v1/albums/:id
-        else if (req.url.match(/\/api\/v1\/albums\/([0-9]+)/) && req.method === 'GET') {
-            getAlbumByIdV1(req, res);
-        }
-        // POST: /api/v1/albums @params: name, description
-        else if (req.url === '/api/v1/albums' && req.method === 'POST') {
-            createAlbumV1(req, res);
-        }
-        // PUT: /api/v1/albums/:id @params: name, description
-        else if (req.url.match(/\/api\/v1\/albums\/([0-9]+)/) && req.method === 'PUT') {
-            updateAlbumV1(req, res);
-        }
-        // PATCH: /api/v1/albums/:id @params: name
-        else if (req.url.match(/\/api\/v1\/albums\/([0-9]+)/) && req.method === 'PATCH') {
-            updateAlbumNameV1(req, res);
-        }
-        // DELETE: /api/v1/albums/:id
-        else if (req.url.match(/\/api\/v1\/albums\/([0-9]+)/) && req.method === 'DELETE') {
-            deleteAlbumV1(req, res);
-        }
-        // GET: /api/v1/images
-        else if (req.url === '/api/v1/images' && req.method === 'GET') {
-            getImagesV1(res);
-        }
-        // POST: /api/v1/images @params: title, image, album_id
-        else if (req.url === '/api/v1/images' && req.method === 'POST') {
-            createImageV1(req, res);
-        }
-        // POST: /api/v1/images @params: form-data image
-        else if (req.url === '/api/v1/images/upload' && req.method === 'POST') {
-            imageUploadV1(req, res);
-        }
-        // GET: /api/v1/imagaes/:id
-        else if (req.url.match(/\/api\/v1\/images\/([0-9]+)/) && req.method === 'GET') {
-            getImageByIdV1(req, res);
-        }
-        // PUT: /api/v1/images/:id @params: title, image, album_id
-        else if (req.url.match(/\/api\/v1\/images\/([0-9]+)/) && req.method === 'PUT') {
-            updateImageV1(req, res);
-        }
-        // PATCH: /api/v1/images/:id @params: title || image || album_id
-        else if (req.url.match(/\/api\/v1\/images\/([0-9]+)/) && req.method === 'PATCH') {
-            updateImagePatchV1(req, res);
-        }
-        // DELETE: /api/v1/images/:id
-        else if (req.url.match(/\/api\/v1\/images\/([0-9]+)/) && req.method === 'DELETE') {
-            deleteImageV1(req, res);
-        }
-        else {
-            routeNotFound(res);
-        }
-    }
-    else {
+    } else {
         routeNotFound(res);
     }
 };
+
 
 
 const routeHandler = (req, res) => {
