@@ -3,6 +3,7 @@ import path from 'path';
 import multiparty from 'multiparty';
 import { fileURLToPath } from 'url';
 import qry from '../database.js'
+import { v4 as uuidv4 } from 'uuid';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,11 +26,14 @@ export const imageUpload = async (req, res) => {
                     return res.end(JSON.stringify({ error: 'Only JPG, PNG, or GIF files are allowed!' }));
                 }
 
-                const destPath = path.join(imageDir, path.basename(file.originalFilename));
+                const originalFileName = path.basename(file.originalFilename).replace(/\s+/g, '-'); // Replace spaces with hyphens
+                const fileExtension = path.extname(originalFileName); // Get the file extension
+                const uniqueName = `${uuidv4()}-${Date.now()}${fileExtension}`;
+                const destPath = path.join(imageDir, uniqueName);
 
                 await fs.copyFile(file.path, destPath);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ image: `/images/${path.basename(file.originalFilename)}` }));
+                res.end(JSON.stringify({ image: `/images/${uniqueName}` }));
             } catch (error) {
                 return res.end(JSON.stringify({ error: 'File saving failed' }));
             }
@@ -54,19 +58,19 @@ export const createImage = async (req, res) => {
         }
         const { title, image, album_id } = JSON.parse(body);
         try {
-            if(!title){
+            if (!title) {
                 res.statusCode = 400;
                 res.end(JSON.stringify({ error: 'Image title is required!' }));
                 return;
             }
 
-            if(!image){
+            if (!image) {
                 res.statusCode = 400;
                 res.end(JSON.stringify({ error: 'Image is required!' }));
                 return;
             }
 
-            if(!album_id){
+            if (!album_id) {
                 res.statusCode = 400;
                 res.end(JSON.stringify({ error: 'Album ID is required!' }));
                 return;
@@ -93,7 +97,7 @@ export const getImages = async (res) => {
         res.end(JSON.stringify(result));
     } catch (error) {
         res.statusCode = 500;
-        res.end(JSON.stringify({error: `${error}`}));
+        res.end(JSON.stringify({ error: `${error}` }));
     }
 }
 
@@ -122,21 +126,26 @@ export const updateImage = async (req, res) => {
         body += chunk.toString();
     });
     req.on('end', async (chunk) => {
-            const { title, image, album_id } = JSON.parse(body);
-            try {
-            if(!title){
+        if (!body) {
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: 'Request body is required!' }));
+            return;
+        }
+        const { title, image, album_id } = JSON.parse(body);
+        try {
+            if (!title) {
                 res.statusCode = 400;
                 res.end(JSON.stringify({ error: 'Image title is required!' }));
                 return;
             }
 
-            if(!image){
+            if (!image) {
                 res.statusCode = 400;
                 res.end(JSON.stringify({ error: 'Image is required!' }));
                 return;
             }
 
-            if(!album_id){
+            if (!album_id) {
                 res.statusCode = 400;
                 res.end(JSON.stringify({ error: 'Album ID is required!' }));
                 return;
@@ -239,7 +248,7 @@ export const deleteImage = async (req, res) => {
     }
 }
 
-const checkAlbumExists = async (album_id, res) =>{
+const checkAlbumExists = async (album_id, res) => {
     const result = await qry('SELECT id FROM albums WHERE id = ?', [album_id]);
     if (result.length === 0) {
         res.statusCode = 404;

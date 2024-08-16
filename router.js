@@ -34,7 +34,7 @@ const staticFileRoutes = (req, res) => {
 
 const apiRoutes = (req, res) => {
     res.setHeader('Content-Type', 'application/json');
-    const [,, apiVersion, resource, id] = req.url.split('/');
+    const [, , apiVersion, resource, id] = req.url.split('/');
 
     // api v1
     if (apiVersion === 'v1') {
@@ -101,9 +101,11 @@ const apiRoutes = (req, res) => {
                         // POST: /api/v1/images @params: title, image, album_id
                         if (req.url === '/api/v1/images/upload') {
                             imageUploadV1(req, res);
-                        } else {
+                        } else if (req.url === '/api/v1/images') {
                             // POST: /api/v1/images @params: form-data image
                             createImageV1(req, res);
+                        } else {
+                            routeNotFound(res);
                         }
                         break;
                     case 'PUT':
@@ -150,7 +152,7 @@ const apiRoutes = (req, res) => {
 const routeHandler = (req, res) => {
     if (req.url.startsWith('/images/')) {
         staticFileRoutes(req, res);
-    } 
+    }
     else {
         apiRoutes(req, res);
     }

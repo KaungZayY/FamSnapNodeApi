@@ -37,6 +37,11 @@ export const createAlbum = async (req, res) => {
     });
     req.on('end', async () => {
         try {
+            if (!body) {
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'Request body is required!' }));
+                return;
+            }
             const { name, description } = JSON.parse(body);
             if (!name) {
                 res.statusCode = 400;
