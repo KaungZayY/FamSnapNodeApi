@@ -1,9 +1,39 @@
+import url from 'url';
+import path from 'path';
+import fs from 'fs';
 import { getAlbums as getAlbumsV1, getAlbumById as getAlbumByIdV1, createAlbum as createAlbumV1, updateAlbum as updateAlbumV1, updateAlbumName as updateAlbumNameV1, deleteAlbum as deleteAlbumV1 } from "./v1/albumHandler.js";
 import { createImage as createImageV1, imageUpload as imageUploadV1, getImages as getImagesV1, getImageById as getImageByIdV1, updateImage as updateImageV1, updateImagePatch as updateImagePatchV1, deleteImage as deleteImageV1 } from "./v1/imageHandler.js";
 import { routeNotFound } from "./commonHandler.js";
 
-const routeHandler = (req, res) => {
+const __filename = url.fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+const staticFileRoutes = (req, res) => {
+    const parsedUrl = url.parse(req.url);
+    const pathname = path.join(__dirname, 'public', parsedUrl.pathname);
+
+    fs.stat(pathname, (err, stats) => {
+        if (err || !stats.isFile()) {
+            res.statusCode = 404;
+            res.end(JSON.stringify({ error: 'File not found' }));
+            return;
+        }
+
+        const ext = path.extname(pathname).toLowerCase();
+        const mimeType = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif'
+        };
+
+        res.setHeader('Content-Type', mimeType[ext] || 'application/octet-stream');
+        fs.createReadStream(pathname).pipe(res);
+    });
+}
+
+const apiRoutes = (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
     const apiVersion = req.url.split('/')[2];
 
     // api v1
@@ -66,6 +96,16 @@ const routeHandler = (req, res) => {
     }
     else {
         routeNotFound(res);
+    }
+};
+
+
+const routeHandler = (req, res) => {
+    if (req.url.startsWith('/images/')) {
+        staticFileRoutes(req, res);
+    } 
+    else {
+        apiRoutes(req, res);
     }
 }
 

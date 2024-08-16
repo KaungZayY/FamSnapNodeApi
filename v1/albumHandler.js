@@ -63,8 +63,13 @@ export const updateAlbum = async (req, res) => {
         body += chunk.toString();
     });
     req.on('end', async () => {
+        if (!body) {
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: 'Request body is required!' }));
+            return;
+        }
+        const { name, description } = JSON.parse(body);
         try {
-            const { name, description } = JSON.parse(body);
             if (!name) {
                 res.statusCode = 400;
                 res.end(JSON.stringify({ error: 'Album name is required!' }));
