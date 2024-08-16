@@ -1,4 +1,5 @@
 import { getAlbums as getAlbumsV1, getAlbumById as getAlbumByIdV1, createAlbum as createAlbumV1, updateAlbum as updateAlbumV1, updateAlbumName as updateAlbumNameV1, deleteAlbum as deleteAlbumV1 } from "./v1/albumHandler.js";
+import { createImage as createImageV1, imageUpload as imageUploadV1 } from "./v1/imageHandler.js";
 import { routeNotFound } from "./commonHandler.js";
 
 const routeHandler = (req, res) => {
@@ -30,6 +31,14 @@ const routeHandler = (req, res) => {
         // DELETE: /api/v1/albums/:id
         else if (req.url.match(/\/api\/v1\/albums\/([0-9]+)/) && req.method === 'DELETE') {
             deleteAlbumV1(req, res);
+        }
+        // POST: /api/v1/images @params: title, image, album_id
+        else if (req.url === '/api/v1/images' && req.method === 'POST') {
+            createImageV1(req, res);
+        }
+        // POST: /api/v1/images @params: form-data image
+        else if (req.url === '/api/v1/images/upload' && req.method === 'POST') {
+            imageUploadV1(req, res);
         }
         else {
             routeNotFound(res);
