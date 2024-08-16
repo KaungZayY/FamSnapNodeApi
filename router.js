@@ -1,7 +1,7 @@
 import url from 'url';
 import path from 'path';
 import fs from 'fs';
-import { getAlbums as getAlbumsV1, getAlbumById as getAlbumByIdV1, createAlbum as createAlbumV1, updateAlbum as updateAlbumV1, updateAlbumName as updateAlbumNameV1, deleteAlbum as deleteAlbumV1 } from "./v1/albumHandler.js";
+import { getAlbums as getAlbumsV1, getAlbumById as getAlbumByIdV1, createAlbum as createAlbumV1, updateAlbum as updateAlbumV1, updateAlbumPatch as updateAlbumPatchV1, deleteAlbum as deleteAlbumV1 } from "./v1/albumHandler.js";
 import { createImage as createImageV1, imageUpload as imageUploadV1, getImages as getImagesV1, getImageById as getImageByIdV1, updateImage as updateImageV1, updateImagePatch as updateImagePatchV1, deleteImage as deleteImageV1 } from "./v1/imageHandler.js";
 import { routeNotFound } from "./commonHandler.js";
 
@@ -67,7 +67,7 @@ const apiRoutes = (req, res) => {
                     case 'PATCH':
                         if (id) {
                             // PATCH: /api/v1/albums/:id @params: name
-                            updateAlbumNameV1(req, res);
+                            updateAlbumPatchV1(req, res);
                         } else {
                             routeNotFound(res);
                         }
