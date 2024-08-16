@@ -74,6 +74,159 @@ export const createImage = async (req, res) => {
     })
 }
 
+export const getImages = async (res) => {
+    try {
+        const result = await qry('SELECT * FROM images');
+        res.statusCode = 200;
+        res.end(JSON.stringify(result));
+    } catch (error) {
+        res.statusCode = 500;
+        res.end(JSON.stringify({error: `${error}`}));
+    }
+}
+
+export const getImageById = async (req, res) => {
+    const id = req.url.split('/')[4];
+    try {
+        const result = await qry('SELECT * FROM images WHERE id=?', [id]);
+        if (result.length > 0) {
+            res.statusCode = 200;
+            res.end(JSON.stringify(result));
+        } else {
+            res.statusCode = 404;
+            res.end(JSON.stringify({ message: 'Image Not Found' }));
+        }
+    }
+    catch (error) {
+        res.statusCode = 500;
+        res.end(JSON.stringify({ error: `${error}` }));
+    }
+}
+
+export const updateImage = async (req, res) => {
+    let body = '';
+    const id = req.url.split('/')[4];
+    req.on('data', (chunk) => {
+        body += chunk.toString();
+    });
+    req.on('end', async (chunk) => {
+            const { title, image, album_id } = JSON.parse(body);
+            try {
+            if(!title){
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'Image title is required!' }));
+                return;
+            }
+
+            if(!image){
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'Image is required!' }));
+                return;
+            }
+
+            if(!album_id){
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'Album ID is required!' }));
+                return;
+            }
+
+            checkAlbumExists(album_id, res);
+            const result = await qry('UPDATE images SET title = ?, image = ?, album_id = ? WHERE id = ?', [title, image, album_id, id]);
+            if (result.affectedRows > 0) {
+                const image = await qry('SELECT * FROM images WHERE id = ?', [id]);
+                res.statusCode = 200;
+                res.end(JSON.stringify(image[0]));
+            }
+            else {
+                res.statusCode = 404;
+                res.end(JSON.stringify({ error: 'Image not found' }));
+            }
+
+        } catch (error) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: `Server error: ${error}` }));
+        }
+    })
+}
+
+export const updateImagePatch = async (req, res) => {
+    let body = '';
+    const id = req.url.split('/')[4];
+
+    req.on('data', (chunk) => {
+        body += chunk.toString();
+    });
+
+    req.on('end', async () => {
+        try {
+            const { title, image, album_id } = JSON.parse(body);
+
+            if (!title && !image && !album_id) {
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'At least one of title, image or album id is required!' }));
+                return;
+            }
+
+            const updateFields = [];
+            const updateValues = [];
+
+            if (title) {
+                updateFields.push('title = ?');
+                updateValues.push(title);
+            }
+
+            if (image) {
+                updateFields.push('image = ?');
+                updateValues.push(image);
+            }
+
+            if (album_id) {
+                checkAlbumExists(album_id, res);
+                updateFields.push('album_id = ?');
+                updateValues.push(album_id);
+            }
+
+            // Adding the album ID at the end of the parameters
+            updateValues.push(id);
+
+            const sqlQuery = `UPDATE images SET ${updateFields.join(', ')} WHERE id = ?`;
+
+            const result = await qry(sqlQuery, updateValues);
+
+            if (result.affectedRows > 0) {
+                const image = await qry('SELECT * FROM images WHERE id = ?', [id]);
+                res.statusCode = 200;
+                res.end(JSON.stringify(image[0]));
+            } else {
+                res.statusCode = 404;
+                res.end(JSON.stringify({ error: 'Image not found' }));
+            }
+        } catch (error) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: `Server error: ${error.message}` }));
+        }
+    });
+};
+
+export const deleteImage = async (req, res) => {
+    const id = req.url.split('/')[4];
+    try {
+        const result = await qry('DELETE FROM images WHERE id = ?', [id]);
+        if (result.affectedRows > 0) {
+            res.statusCode = 200;
+            res.end(JSON.stringify({ message: 'Image Removed' }));
+        }
+        else {
+            res.statusCode = 404;
+            res.end(JSON.stringify({ error: 'Image not found' }));
+        }
+    }
+    catch (error) {
+        res.statusCode = 400;
+        res.end(JSON.stringify({ error: `${error}` }));
+    }
+}
+
 const checkAlbumExists = async (album_id, res) =>{
     const result = await qry('SELECT id FROM albums WHERE id = ?', [album_id]);
     if (result.length === 0) {
