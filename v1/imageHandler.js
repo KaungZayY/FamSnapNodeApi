@@ -4,6 +4,7 @@ import multiparty from 'multiparty';
 import { fileURLToPath } from 'url';
 import qry from '../database.js'
 import { v4 as uuidv4 } from 'uuid';
+import cloudinary from '../cloudinaryConfig.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,11 +30,24 @@ export const imageUpload = async (req, res) => {
                 const originalFileName = path.basename(file.originalFilename).replace(/\s+/g, '-'); // Replace spaces with hyphens
                 const fileExtension = path.extname(originalFileName); // Get the file extension
                 const uniqueName = `${uuidv4()}-${Date.now()}${fileExtension}`;
-                const destPath = path.join(imageDir, uniqueName);
 
+                // save under public folder
+                /*
+                const destPath = path.join(imageDir, uniqueName);
                 await fs.copyFile(file.path, destPath);
+
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ image: `/images/${uniqueName}` }));
+                */
+
+                // save to cloudinary
+                const result = await cloudinary.uploader.upload(file.path, {
+                    folder: 'fam_snap_images',
+                    public_id: uniqueName,
+                });
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ image: result.secure_url }));
+
             } catch (error) {
                 return res.end(JSON.stringify({ error: 'File saving failed' }));
             }
