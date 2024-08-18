@@ -12,12 +12,12 @@ const __dirname = path.dirname(__filename);
 export const imageUpload = async (req, res) => {
 
     const form = new multiparty.Form();
-    const imageDir = path.join(__dirname, '../public/images');
+    // const imageDir = path.join(__dirname, '../public/images');
 
     form.parse(req, async (err, fields, files) => {
         if (!err) {
             try {
-                await fs.mkdir(imageDir, { recursive: true });
+                // await fs.mkdir(imageDir, { recursive: true });
                 const file = files.image[0];
                 const fileType = file.headers['content-type'];
                 const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
