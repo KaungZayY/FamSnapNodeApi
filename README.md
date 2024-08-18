@@ -4,10 +4,10 @@ FamSnap is a Node.js API for managing photo albums and images, including image u
 This API provides endpoints for managing albums and images using MySQL as the database and Cloudinary for image storage.
 
 ## Table of Contents
-1. [ Tech Stack](#-tech-stack)
-2. [API Endpoints V1](#-api-endpoints-v1)
-3. [Test Locally](#-test-locally)
-4. [Conclusion](#-conclusion)
+1. [ Tech Stack](#tech-stack)
+2. [API Endpoints V1](#api-endpoints-v1)
+3. [Test Locally](#test-locally)
+4. [Conclusion](#conclusion)
 
 ##  Tech Stack
 
@@ -163,7 +163,7 @@ Base URL: `http://localhost:3000`
 - PATCH : `/api/v1/images/:id`
 - DELETE : `/api/v1/images/:id`
 
-## 📋 Conclusion
+## Conclusion
 FamSnap API offers a robust solution for managing photo albums and image uploads, utilizing Node.js for the backend, MySQL for the database, and Cloudinary for image storage. With clear and well-structured API endpoints, users can create, retrieve, update, and delete albums and images efficiently. The Dockerized setup ensures smooth local development, and the use of environment variables allows flexibility in configuration for different environments.
 
 Whether you are testing locally or deploying to production, this API provides a solid foundation for managing your photo albums and image assets in a scalable way.
