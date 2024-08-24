@@ -12,12 +12,12 @@ const __dirname = path.dirname(__filename);
 export const imageUpload = async (req, res) => {
 
     const form = new multiparty.Form();
-    // const imageDir = path.join(__dirname, '../public/images');
+    const imageDir = path.join(__dirname, '../public/images');
 
     form.parse(req, async (err, fields, files) => {
         if (!err) {
             try {
-                // await fs.mkdir(imageDir, { recursive: true });
+                await fs.mkdir(imageDir, { recursive: true });
                 const file = files.image[0];
                 const fileType = file.headers['content-type'];
                 const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
@@ -32,21 +32,23 @@ export const imageUpload = async (req, res) => {
                 const uniqueName = `${uuidv4()}-${Date.now()}${fileExtension}`;
 
                 // save under public folder
-                /*
+
                 const destPath = path.join(imageDir, uniqueName);
                 await fs.copyFile(file.path, destPath);
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ image: `/images/${uniqueName}` }));
-                */
+
 
                 // save to cloudinary
+                /*
                 const result = await cloudinary.uploader.upload(file.path, {
                     folder: 'fam_snap_images',
                     public_id: uniqueName,
                 });
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ image: result.secure_url }));
+                */
 
             } catch (error) {
                 return res.end(JSON.stringify({ error: 'File saving failed' }));
