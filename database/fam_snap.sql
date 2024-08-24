@@ -96,3 +96,12 @@ COMMIT;
 
 ALTER TABLE `albums` ADD `unique_id` VARCHAR(55) NOT NULL AFTER `id`, ADD UNIQUE (`unique_id`);
 ALTER TABLE `images` ADD `unique_id` VARCHAR(55) NOT NULL AFTER `id`, ADD UNIQUE (`unique_id`);
+
+CREATE TABLE `fam_snap`.`users` (
+`id` INT NOT NULL AUTO_INCREMENT , 
+`name` VARCHAR(55) NOT NULL , 
+`email` VARCHAR(125) NOT NULL , 
+`password` VARCHAR(512) NOT NULL , 
+`address` VARCHAR(512) NOT NULL , 
+PRIMARY KEY (`id`), UNIQUE (`email`)) 
+ENGINE = InnoDB;

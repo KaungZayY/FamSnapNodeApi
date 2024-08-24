@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { getAlbums as getAlbumsV1, getAlbumById as getAlbumByIdV1, createAlbum as createAlbumV1, updateAlbum as updateAlbumV1, updateAlbumPatch as updateAlbumPatchV1, deleteAlbum as deleteAlbumV1 } from "./v1/albumHandler.js";
 import { createImage as createImageV1, imageUpload as imageUploadV1, getImages as getImagesV1, getImageById as getImageByIdV1, updateImage as updateImageV1, updateImagePatch as updateImagePatchV1, deleteImage as deleteImageV1 } from "./v1/imageHandler.js";
+import { registerUser as registerUserV1 } from './v1/userHandler.js';
 import { routeNotFound } from "./commonHandler.js";
 
 const __filename = url.fileURLToPath(import.meta.url);
@@ -31,6 +32,32 @@ const staticFileRoutes = (req, res) => {
         fs.createReadStream(pathname).pipe(res);
     });
 }
+
+const authRoutes = (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    const [, authPrefix, apiVersion, action] = req.url.split('/');
+
+    if (authPrefix === 'auth' && apiVersion === 'v1') {
+        const method = req.method;
+
+        switch (action) {
+            case 'register':
+                if (method === 'POST') {
+                    // POST: /auth/v1/register @params: name, email, password, address
+                    registerUserV1(req, res);
+                } else {
+                    routeNotFound(res);
+                }
+                break;
+
+            default:
+                routeNotFound(res);
+                break;
+        }
+    } else {
+        routeNotFound(res);
+    }
+};
 
 const apiRoutes = (req, res) => {
     res.setHeader('Content-Type', 'application/json');
@@ -153,8 +180,14 @@ const routeHandler = (req, res) => {
     if (req.url.startsWith('/images/')) {
         staticFileRoutes(req, res);
     }
-    else {
+    else if (req.url.startsWith('/auth/v1')) {
+        authRoutes(req, res);
+    } 
+    else if (req.url.startsWith('/api/v1')) {
         apiRoutes(req, res);
+    } 
+    else {
+        routeNotFound(res);
     }
 }
 
