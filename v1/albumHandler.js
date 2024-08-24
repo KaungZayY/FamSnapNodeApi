@@ -1,4 +1,5 @@
 import qry from '../database.js'
+import { generateId } from './idGenerator.js';
 
 export const getAlbums = async (res) => {
     try {
@@ -15,7 +16,7 @@ export const getAlbums = async (res) => {
 export const getAlbumById = async (req, res) => {
     const id = req.url.split('/')[4];
     try {
-        const result = await qry('SELECT * FROM albums WHERE id=?', [id]);
+        const result = await qry('SELECT unique_id, name, description FROM albums WHERE unique_id=?', [id]);
         if (result.length > 0) {
             res.statusCode = 200;
             res.end(JSON.stringify(result));
@@ -48,9 +49,10 @@ export const createAlbum = async (req, res) => {
                 res.end(JSON.stringify({ error: 'Album name is required!' }));
                 return;
             }
-            const result = await qry('INSERT INTO albums(name, description) VALUES (?,?)', [name, description]);
+            const uniqueId = generateId('A');
+            const result = await qry('INSERT INTO albums(unique_id, name, description) VALUES (?,?,?)', [uniqueId, name, description]);
             const insertId = result.insertId;
-            const newAlbum = await qry('SELECT * FROM albums WHERE id = ?', [insertId]);
+            const newAlbum = await qry('SELECT unique_id, name, description FROM albums WHERE id = ?', [insertId]);
             res.statusCode = 201;
             res.end(JSON.stringify(newAlbum[0]));
         }
@@ -80,9 +82,9 @@ export const updateAlbum = async (req, res) => {
                 res.end(JSON.stringify({ error: 'Album name is required!' }));
                 return;
             }
-            const result = await qry('UPDATE albums SET name = ?, description = ? WHERE id = ?', [name, description, id]);
+            const result = await qry('UPDATE albums SET name = ?, description = ? WHERE unique_id = ?', [name, description, id]);
             if (result.affectedRows > 0) {
-                const album = await qry('SELECT * FROM albums WHERE id = ?', [id]);
+                const album = await qry('SELECT unique_id, name, description FROM albums WHERE unique_id = ?', [id]);
                 res.statusCode = 200;
                 res.end(JSON.stringify(album[0]));
             }
@@ -129,12 +131,12 @@ export const updateAlbumPatch = async (req, res) => {
 
             updateValues.push(id);
 
-            const sqlQuery = `UPDATE albums SET ${updateFields.join(', ')} WHERE id = ?`;
+            const sqlQuery = `UPDATE albums SET ${updateFields.join(', ')} WHERE unique_id = ?`;
 
             const result = await qry(sqlQuery, updateValues);
 
             if (result.affectedRows > 0) {
-                const image = await qry('SELECT * FROM albums WHERE id = ?', [id]);
+                const image = await qry('SELECT unique_id, name, description FROM albums WHERE unique_id = ?', [id]);
                 res.statusCode = 200;
                 res.end(JSON.stringify(image[0]));
             } else {
@@ -152,7 +154,7 @@ export const updateAlbumPatch = async (req, res) => {
 export const deleteAlbum = async (req, res) => {
     const id = req.url.split('/')[4];
     try {
-        const result = await qry('DELETE FROM albums WHERE id = ?', [id]);
+        const result = await qry('DELETE FROM albums WHERE unique_id = ?', [id]);
         if (result.affectedRows > 0) {
             res.statusCode = 200;
             res.end(JSON.stringify({ message: 'Album Removed' }));

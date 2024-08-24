@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import qry from '../database.js'
 import { v4 as uuidv4 } from 'uuid';
 import cloudinary from '../cloudinaryConfig.js';
+import { generateId } from './idGenerator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -92,12 +93,21 @@ export const createImage = async (req, res) => {
                 return;
             }
 
-            checkAlbumExists(album_id, res)
-            const result = await qry('INSERT INTO images(title, image, album_id) VALUES (?,?,?)', [title, image, album_id]);
+            checkAlbumExists(album_id, res);
+            const albumOriginalId = await getAlbumIdByUniqueId(album_id);
+
+            const uniqueId = generateId('I');
+            const result = await qry('INSERT INTO images(unique_id, title, image, album_id) VALUES (?,?,?,?)', [uniqueId, title, image, albumOriginalId]);
             const insertId = result.insertId;
-            const newAlbum = await qry('SELECT * FROM images WHERE id = ?', [insertId]);
+            const newImage = await qry(
+                `SELECT images.unique_id, images.title, images.image, albums.unique_id as album_id 
+                 FROM images 
+                 JOIN albums ON images.album_id = albums.id 
+                 WHERE images.id = ?`,
+                [insertId]
+              );
             res.statusCode = 201;
-            res.end(JSON.stringify(newAlbum[0]));
+            res.end(JSON.stringify(newImage[0]));
 
         } catch (error) {
             res.statusCode = 400;
@@ -120,7 +130,7 @@ export const getImages = async (res) => {
 export const getImageById = async (req, res) => {
     const id = req.url.split('/')[4];
     try {
-        const result = await qry('SELECT * FROM images WHERE id=?', [id]);
+        const result = await qry('SELECT title, image, album_id FROM images WHERE unique_id=?', [id]);
         if (result.length > 0) {
             res.statusCode = 200;
             res.end(JSON.stringify(result));
@@ -168,9 +178,17 @@ export const updateImage = async (req, res) => {
             }
 
             checkAlbumExists(album_id, res);
-            const result = await qry('UPDATE images SET title = ?, image = ?, album_id = ? WHERE id = ?', [title, image, album_id, id]);
+            const albumOriginalId = await getAlbumIdByUniqueId(album_id);
+
+            const result = await qry('UPDATE images SET title = ?, image = ?, album_id = ? WHERE unique_id = ?', [title, image, albumOriginalId, id]);
             if (result.affectedRows > 0) {
-                const image = await qry('SELECT * FROM images WHERE id = ?', [id]);
+                const image = await qry(
+                    `SELECT images.unique_id, images.title, images.image, albums.unique_id as album_id 
+                     FROM images 
+                     JOIN albums ON images.album_id = albums.id 
+                     WHERE images.unique_id = ?`,
+                    [id]
+                  );
                 res.statusCode = 200;
                 res.end(JSON.stringify(image[0]));
             }
@@ -219,19 +237,26 @@ export const updateImagePatch = async (req, res) => {
 
             if (album_id) {
                 checkAlbumExists(album_id, res);
+                const albumOriginalId = await getAlbumIdByUniqueId(album_id);
                 updateFields.push('album_id = ?');
-                updateValues.push(album_id);
+                updateValues.push(albumOriginalId);
             }
 
             // Adding the album ID at the end of the parameters
             updateValues.push(id);
 
-            const sqlQuery = `UPDATE images SET ${updateFields.join(', ')} WHERE id = ?`;
+            const sqlQuery = `UPDATE images SET ${updateFields.join(', ')} WHERE unique_id = ?`;
 
             const result = await qry(sqlQuery, updateValues);
 
             if (result.affectedRows > 0) {
-                const image = await qry('SELECT * FROM images WHERE id = ?', [id]);
+                const image = await qry(
+                    `SELECT images.unique_id, images.title, images.image, albums.unique_id as album_id 
+                     FROM images 
+                     JOIN albums ON images.album_id = albums.id 
+                     WHERE images.unique_id = ?`,
+                    [id]
+                  );
                 res.statusCode = 200;
                 res.end(JSON.stringify(image[0]));
             } else {
@@ -248,7 +273,7 @@ export const updateImagePatch = async (req, res) => {
 export const deleteImage = async (req, res) => {
     const id = req.url.split('/')[4];
     try {
-        const result = await qry('DELETE FROM images WHERE id = ?', [id]);
+        const result = await qry('DELETE FROM images WHERE unique_id = ?', [id]);
         if (result.affectedRows > 0) {
             res.statusCode = 200;
             res.end(JSON.stringify({ message: 'Image Removed' }));
@@ -265,10 +290,20 @@ export const deleteImage = async (req, res) => {
 }
 
 const checkAlbumExists = async (album_id, res) => {
-    const result = await qry('SELECT id FROM albums WHERE id = ?', [album_id]);
+    const result = await qry('SELECT id FROM albums WHERE unique_id = ?', [album_id]);
     if (result.length === 0) {
         res.statusCode = 404;
         res.end(JSON.stringify({ error: 'Album not found!' }));
         return;
     }
 }
+
+const getAlbumIdByUniqueId = async (unique_id) => {
+    try {
+        const result = await qry('SELECT id FROM albums WHERE unique_id = ?', [unique_id]);
+        return result[0].id;
+    } catch (error) {
+        console.error('Query Error:', error);
+        throw error;
+    }
+};
