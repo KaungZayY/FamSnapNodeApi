@@ -1,5 +1,4 @@
 import qry from '../database.js'
-import { generateId } from '../globalFunctions.js';
 
 export const getAlbums = async (res) => {
     try {
@@ -49,9 +48,11 @@ export const createAlbum = async (req, res) => {
                 res.end(JSON.stringify({ error: 'Album name is required!' }));
                 return;
             }
-            const uniqueId = generateId('A');
-            const result = await qry('INSERT INTO albums(unique_id, name, description) VALUES (?,?,?)', [uniqueId, name, description]);
+            const result = await qry('INSERT INTO albums(name, description) VALUES (?,?)', [name, description]);
             const insertId = result.insertId;
+            const formattedId = insertId.toString().padStart(7, '0');
+            const uniqueId = `A-${formattedId}`;
+            await qry('UPDATE albums SET unique_id = ? WHERE id = ?', [uniqueId, insertId]);
             const newAlbum = await qry('SELECT unique_id, name, description FROM albums WHERE id = ?', [insertId]);
             res.statusCode = 201;
             res.end(JSON.stringify(newAlbum[0]));

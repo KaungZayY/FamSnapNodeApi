@@ -5,7 +5,6 @@ import { fileURLToPath } from 'url';
 import qry from '../database.js'
 import { v4 as uuidv4 } from 'uuid';
 import cloudinary from '../cloudinaryConfig.js';
-import { generateId } from '../globalFunctions.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -96,9 +95,12 @@ export const createImage = async (req, res) => {
             checkAlbumExists(album_id, res);
             const albumOriginalId = await getAlbumIdByUniqueId(album_id);
 
-            const uniqueId = generateId('I');
-            const result = await qry('INSERT INTO images(unique_id, title, image, album_id) VALUES (?,?,?,?)', [uniqueId, title, image, albumOriginalId]);
+            const result = await qry('INSERT INTO images(title, image, album_id) VALUES (?,?,?)', [title, image, albumOriginalId]);
             const insertId = result.insertId;
+            const formattedId = insertId.toString().padStart(7, '0');
+            const uniqueId = `I-${formattedId}`;
+            await qry('UPDATE images SET unique_id = ? WHERE id = ?', [uniqueId, insertId]);
+
             const newImage = await qry(
                 `SELECT images.unique_id, images.title, images.image, albums.unique_id as album_id 
                  FROM images 
