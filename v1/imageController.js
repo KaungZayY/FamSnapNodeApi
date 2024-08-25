@@ -134,7 +134,10 @@ export const getImages = async (res) => {
 export const getImageById = async (req, res) => {
     const id = req.url.split('/')[4];
     try {
-        const result = await qry('SELECT title, image, album_id FROM images WHERE unique_id=?', [id]);
+        const result = await qry(
+            `SELECT images.unique_id, images.title, images.image, albums.unique_id as album_id 
+             FROM images 
+             JOIN albums ON images.album_id = albums.id WHERE images.unique_id=?`, [id]);
         if (result.length > 0) {
             res.statusCode = 200;
             res.end(JSON.stringify(result));
