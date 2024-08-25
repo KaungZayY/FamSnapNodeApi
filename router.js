@@ -1,10 +1,10 @@
 import url from 'url';
 import path from 'path';
 import fs from 'fs';
-import { getAlbums as getAlbumsV1, getAlbumById as getAlbumByIdV1, createAlbum as createAlbumV1, updateAlbum as updateAlbumV1, updateAlbumPatch as updateAlbumPatchV1, deleteAlbum as deleteAlbumV1 } from "./v1/albumHandler.js";
-import { createImage as createImageV1, imageUpload as imageUploadV1, getImages as getImagesV1, getImageById as getImageByIdV1, updateImage as updateImageV1, updateImagePatch as updateImagePatchV1, deleteImage as deleteImageV1 } from "./v1/imageHandler.js";
-import { registerUser as registerUserV1, login as loginV1, tokenRefresh as tokenRefreshV1, logout as logoutV1 } from './v1/userHandler.js';
-import { routeNotFound } from "./commonHandler.js";
+import { getAlbums as getAlbumsV1, getAlbumById as getAlbumByIdV1, createAlbum as createAlbumV1, updateAlbum as updateAlbumV1, updateAlbumPatch as updateAlbumPatchV1, deleteAlbum as deleteAlbumV1 } from "./v1/albumController.js";
+import { createImage as createImageV1, imageUpload as imageUploadV1, getImages as getImagesV1, getImageById as getImageByIdV1, updateImage as updateImageV1, updateImagePatch as updateImagePatchV1, deleteImage as deleteImageV1 } from "./v1/imageController.js";
+import { registerUser as registerUserV1, login as loginV1, tokenRefresh as tokenRefreshV1, logout as logoutV1 } from './v1/userController.js';
+import { routeNotFound } from "./globalFunctions.js";
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

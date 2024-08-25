@@ -1,9 +1,9 @@
 import qry from '../database.js'
-import { generateId } from './idGenerator.js';
+import { generateId } from '../globalFunctions.js';
 
 export const getAlbums = async (res) => {
     try {
-        const result = await qry('SELECT * FROM albums');
+        const result = await qry('SELECT unique_id, name, description FROM albums');
         res.statusCode = 200;
         res.end(JSON.stringify(result));
     }

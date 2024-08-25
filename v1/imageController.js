@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import qry from '../database.js'
 import { v4 as uuidv4 } from 'uuid';
 import cloudinary from '../cloudinaryConfig.js';
-import { generateId } from './idGenerator.js';
+import { generateId } from '../globalFunctions.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -118,7 +118,11 @@ export const createImage = async (req, res) => {
 
 export const getImages = async (res) => {
     try {
-        const result = await qry('SELECT * FROM images');
+        const result = await qry(
+            `SELECT images.unique_id, images.title, images.image, albums.unique_id as album_id 
+             FROM images 
+             JOIN albums ON images.album_id = albums.id`
+        );
         res.statusCode = 200;
         res.end(JSON.stringify(result));
     } catch (error) {
