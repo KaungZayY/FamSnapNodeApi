@@ -1,4 +1,5 @@
 import qry from '../database.js'
+import { validateOwnership } from '../globalFunctions.js';
 
 export const getAlbums = async (res) => {
     try {
@@ -13,9 +14,9 @@ export const getAlbums = async (res) => {
 }
 
 export const getAlbumById = async (req, res) => {
-    const id = req.url.split('/')[4];
+    const unique_id = req.url.split('/')[4];
     try {
-        const result = await qry('SELECT unique_id, name, description FROM albums WHERE unique_id=?', [id]);
+        const result = await qry('SELECT unique_id, name, description FROM albums WHERE unique_id=?', [unique_id]);
         if (result.length > 0) {
             res.statusCode = 200;
             res.end(JSON.stringify(result));
@@ -36,19 +37,20 @@ export const createAlbum = async (req, res) => {
         body += chunk.toString();
     });
     req.on('end', async () => {
+        if (!body) {
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: 'Request body is required!' }));
+            return;
+        }
+        const { name, description } = JSON.parse(body);
+        if (!name) {
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: 'Album name is required!' }));
+            return;
+        }
         try {
-            if (!body) {
-                res.statusCode = 400;
-                res.end(JSON.stringify({ error: 'Request body is required!' }));
-                return;
-            }
-            const { name, description } = JSON.parse(body);
-            if (!name) {
-                res.statusCode = 400;
-                res.end(JSON.stringify({ error: 'Album name is required!' }));
-                return;
-            }
-            const result = await qry('INSERT INTO albums(name, description) VALUES (?,?)', [name, description]);
+            const userId = req.user.userId;
+            const result = await qry('INSERT INTO albums(name, description, user_id) VALUES (?,?,?)', [name, description, userId]);
             const insertId = result.insertId;
             const formattedId = insertId.toString().padStart(7, '0');
             const uniqueId = `A-${formattedId}`;
@@ -66,7 +68,7 @@ export const createAlbum = async (req, res) => {
 
 export const updateAlbum = async (req, res) => {
     let body = '';
-    const id = req.url.split('/')[4];
+    const unique_id = req.url.split('/')[4];
     req.on('data', (chunk) => {
         body += chunk.toString();
     });
@@ -77,15 +79,22 @@ export const updateAlbum = async (req, res) => {
             return;
         }
         const { name, description } = JSON.parse(body);
+        if (!name) {
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: 'Album name is required!' }));
+            return;
+        }
+
+        const isOwner = await validateOwnership('albums', unique_id, req, res);
+        if (!isOwner) {
+            return;
+        }
+
         try {
-            if (!name) {
-                res.statusCode = 400;
-                res.end(JSON.stringify({ error: 'Album name is required!' }));
-                return;
-            }
-            const result = await qry('UPDATE albums SET name = ?, description = ? WHERE unique_id = ?', [name, description, id]);
+            
+            const result = await qry('UPDATE albums SET name = ?, description = ? WHERE unique_id = ?', [name, description, unique_id]);
             if (result.affectedRows > 0) {
-                const album = await qry('SELECT unique_id, name, description FROM albums WHERE unique_id = ?', [id]);
+                const album = await qry('SELECT unique_id, name, description FROM albums WHERE unique_id = ?', [unique_id]);
                 res.statusCode = 200;
                 res.end(JSON.stringify(album[0]));
             }
@@ -96,20 +105,19 @@ export const updateAlbum = async (req, res) => {
         }
         catch (error) {
             res.statusCode = 500;
-            res.end(JSON.stringify({ error: `Server error: ${err}` }));
+            res.end(JSON.stringify({ error: `Server error: ${error}` }));
         }
     })
 }
 
 export const updateAlbumPatch = async (req, res) => {
     let body = '';
-    const id = req.url.split('/')[4];
+    const unique_id = req.url.split('/')[4];
     req.on('data', (chunk) => {
         body += chunk.toString();
     });
     req.on('end', async () => {
-        try {
-            const { name, description } = JSON.parse(body);
+        const { name, description } = JSON.parse(body);
 
             if (!name && !description) {
                 res.statusCode = 400;
@@ -129,15 +137,21 @@ export const updateAlbumPatch = async (req, res) => {
                 updateFields.push('description = ?');
                 updateValues.push(description);
             }
+            updateValues.push(unique_id);
 
-            updateValues.push(id);
+            const isOwner = await validateOwnership('albums', unique_id, req, res);
+            if (!isOwner) {
+                return;
+            }
 
+        try {
+            
             const sqlQuery = `UPDATE albums SET ${updateFields.join(', ')} WHERE unique_id = ?`;
 
             const result = await qry(sqlQuery, updateValues);
 
             if (result.affectedRows > 0) {
-                const image = await qry('SELECT unique_id, name, description FROM albums WHERE unique_id = ?', [id]);
+                const image = await qry('SELECT unique_id, name, description FROM albums WHERE unique_id = ?', [unique_id]);
                 res.statusCode = 200;
                 res.end(JSON.stringify(image[0]));
             } else {
@@ -153,9 +167,14 @@ export const updateAlbumPatch = async (req, res) => {
 }
 
 export const deleteAlbum = async (req, res) => {
-    const id = req.url.split('/')[4];
+    const unique_id = req.url.split('/')[4];
+    const isOwner = await validateOwnership('albums', unique_id, req, res);
+    if (!isOwner) {
+        return;
+    }
+    
     try {
-        const result = await qry('DELETE FROM albums WHERE unique_id = ?', [id]);
+        const result = await qry('DELETE FROM albums WHERE unique_id = ?', [unique_id]);
         if (result.affectedRows > 0) {
             res.statusCode = 200;
             res.end(JSON.stringify({ message: 'Album Removed' }));
