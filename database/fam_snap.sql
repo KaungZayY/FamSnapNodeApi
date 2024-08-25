@@ -94,8 +94,8 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 
-ALTER TABLE `albums` ADD `unique_id` VARCHAR(55) NOT NULL AFTER `id`, ADD UNIQUE (`unique_id`);
-ALTER TABLE `images` ADD `unique_id` VARCHAR(55) NOT NULL AFTER `id`, ADD UNIQUE (`unique_id`);
+ALTER TABLE `albums` ADD `unique_id` VARCHAR(55) NULL AFTER `id`, ADD UNIQUE (`unique_id`);
+ALTER TABLE `images` ADD `unique_id` VARCHAR(55) NULL AFTER `id`, ADD UNIQUE (`unique_id`);
 
 CREATE TABLE `fam_snap`.`users` (
 `id` INT NOT NULL AUTO_INCREMENT , 
@@ -105,3 +105,9 @@ CREATE TABLE `fam_snap`.`users` (
 `address` VARCHAR(512) NOT NULL , 
 PRIMARY KEY (`id`), UNIQUE (`email`)) 
 ENGINE = InnoDB;
+
+ALTER TABLE `albums` ADD `user_id` INT NULL AFTER `description`;
+ALTER TABLE `albums` ADD FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
+
+ALTER TABLE `images` ADD `user_id` INT NULL AFTER `album_id`;
+ALTER TABLE `images` ADD FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
