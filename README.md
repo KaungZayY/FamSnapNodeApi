@@ -21,10 +21,19 @@ The API exposes several endpoints for managing photo albums and images.
 
 Base URL: https://fam-snap-node-api.vercel.app/
 
+**Auth**
+
+- POST `/auth/v1/register`: Create an account (`name`, `email`, `password`, `address` required)
+- POST `/auth/v1/login` Login to get access and refresh tokens (`email`, `password` required)
+- POST `/auth/v1/refresh` Refresh access token (refresh `token` required)
+- DELETE `/auth/v1/logout` Logout (access `token` required)
+
+`Access token` will be necessary for routes with `POST`, `PUT`, `PATCH` and `DELETE` methods.
+
 **Albums**
 
 - GET `/api/v1/albums`: Retrieve all albums.
-- POST `/api/v1/albums`: Create a new album. (name, description required)
+- POST `/api/v1/albums`: Create a new album. (`name`, `description` required)
 - GET `/api/v1/albums/:id`: Retrieve a specific album by ID.
 - PUT `/api/v1/albums/:id`: Update an album by ID.
 - PATCH `/api/v1/albums/:id`: Partially update an album by ID.
@@ -33,8 +42,8 @@ Base URL: https://fam-snap-node-api.vercel.app/
 **Images**
 
 - GET `/api/v1/images`: Retrieve all images.
-- POST `/api/v1/images/upload`: Upload an image to Cloudinary. (form-data:image required)
-- POST `/api/v1/images`: Create a new image. (title, image, album_id required)
+- POST `/api/v1/images/upload`: Upload an image to Cloudinary. (form-data:`image` required)
+- POST `/api/v1/images`: Create a new image. (`title`, `image`, `album_id` required)
 - GET `/api/v1/images/:id`: Retrieve a specific image by ID.
 - PUT `/api/v1/images/:id`: Update an image by ID.
 - PATCH `/api/v1/images/:id`: Partially update an image by ID.
@@ -144,24 +153,31 @@ docker-compose restart
 ### Step 10: Test the Api Locally
 Base URL: `http://localhost:3000`
 
+**Auth**
+
+- POST: `/auth/v1/register` @params: name, email, password, address
+- POST: `/auth/v1/login` @params: email, password
+- POST: `/auth/v1/refresh` @params: token
+- DELETE: `/auth/v1/logout` @params: token
+
 **Albums**
 
 - GET : `/api/v1/albums`
-- POST : `/api/v1/albums` @params : name, description required
+- POST : `/api/v1/albums` @params : name, description| @header : Bearer Token
 - GET : `/api/v1/albums/:id`
-- PUT : `/api/v1/albums/:id`
-- PATCH : `/api/v1/albums/:id`
-- DELETE : `/api/v1/albums/:id`
+- PUT : `/api/v1/albums/:id` @header : Bearer Token
+- PATCH : `/api/v1/albums/:id` @header : Bearer Token
+- DELETE : `/api/v1/albums/:id` @header : Bearer Token
 
 **Images**
 
 - GET : `/api/v1/images`
-- POST : `/api/v1/images/upload` @params : form-data:image
-- POST : `/api/v1/images`: @params : title, image, album_id
+- POST : `/api/v1/images/upload` @params : form-data:image | @header : Bearer Token
+- POST : `/api/v1/images`: @params : title, image, album_id | @header : Bearer Token
 - GET : `/api/v1/images/:id`
-- PUT : `/api/v1/images/:id`
-- PATCH : `/api/v1/images/:id`
-- DELETE : `/api/v1/images/:id`
+- PUT : `/api/v1/images/:id` @header : Bearer Token
+- PATCH : `/api/v1/images/:id` @header : Bearer Token
+- DELETE : `/api/v1/images/:id` @header : Bearer Token
 
 ## Conclusion
 FamSnap API offers a robust solution for managing photo albums and image uploads, utilizing Node.js for the backend, MySQL for the database, and Cloudinary for image storage. With clear and well-structured API endpoints, users can create, retrieve, update, and delete albums and images efficiently. The Dockerized setup ensures smooth local development, and the use of environment variables allows flexibility in configuration for different environments.
