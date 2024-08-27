@@ -11,5 +11,9 @@
             "src": "/api/(.*)",
             "dest": "/server.js"
         }
+        {
+            "src": "/auth/v1/(.*)",
+            "dest": "/server.js"
+        }
     ]
 }
