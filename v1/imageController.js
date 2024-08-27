@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import qry from '../database.js'
 import { v4 as uuidv4 } from 'uuid';
 import cloudinary from '../cloudinaryConfig.js';
+import { validateOwnership } from '../globalFunctions.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,12 +42,14 @@ export const imageUpload = async (req, res) => {
                 */
 
                 // save to cloudinary
+
                 const result = await cloudinary.uploader.upload(file.path, {
                     folder: 'fam_snap_images',
                     public_id: uniqueName,
                 });
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ image: result.secure_url }));
+                
 
             } catch (error) {
                 return res.end(JSON.stringify({ error: 'File saving failed' }));
@@ -71,31 +74,45 @@ export const createImage = async (req, res) => {
             return;
         }
         const { title, image, album_id } = JSON.parse(body);
+        if (!title) {
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: 'Image title is required!' }));
+            return;
+        }
+
+        if (!image) {
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: 'Image is required!' }));
+            return;
+        }
+
+        if (!album_id) {
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: 'Album ID is required!' }));
+            return;
+        }
+        
         try {
-            if (!title) {
-                res.statusCode = 400;
-                res.end(JSON.stringify({ error: 'Image title is required!' }));
-                return;
-            }
 
-            if (!image) {
-                res.statusCode = 400;
-                res.end(JSON.stringify({ error: 'Image is required!' }));
-                return;
-            }
+            checkAlbumExists(album_id, res);
+            const albumOriginalId = await getAlbumIdByUniqueId(album_id);
 
-            if (!album_id) {
-                res.statusCode = 400;
-                res.end(JSON.stringify({ error: 'Album ID is required!' }));
-                return;
-            }
-
-            checkAlbumExists(album_id, res)
-            const result = await qry('INSERT INTO images(title, image, album_id) VALUES (?,?,?)', [title, image, album_id]);
+            const userId = req.user.userId;
+            const result = await qry('INSERT INTO images(title, image, album_id, user_id) VALUES (?,?,?,?)', [title, image, albumOriginalId, userId]);
             const insertId = result.insertId;
-            const newAlbum = await qry('SELECT * FROM images WHERE id = ?', [insertId]);
+            const formattedId = insertId.toString().padStart(7, '0');
+            const uniqueId = `I-${formattedId}`;
+            await qry('UPDATE images SET unique_id = ? WHERE id = ?', [uniqueId, insertId]);
+
+            const newImage = await qry(
+                `SELECT images.unique_id, images.title, images.image, albums.unique_id as album_id 
+                 FROM images 
+                 JOIN albums ON images.album_id = albums.id 
+                 WHERE images.id = ?`,
+                [insertId]
+              );
             res.statusCode = 201;
-            res.end(JSON.stringify(newAlbum[0]));
+            res.end(JSON.stringify(newImage[0]));
 
         } catch (error) {
             res.statusCode = 400;
@@ -106,7 +123,11 @@ export const createImage = async (req, res) => {
 
 export const getImages = async (res) => {
     try {
-        const result = await qry('SELECT * FROM images');
+        const result = await qry(
+            `SELECT images.unique_id, images.title, images.image, albums.unique_id as album_id 
+             FROM images 
+             JOIN albums ON images.album_id = albums.id`
+        );
         res.statusCode = 200;
         res.end(JSON.stringify(result));
     } catch (error) {
@@ -116,9 +137,12 @@ export const getImages = async (res) => {
 }
 
 export const getImageById = async (req, res) => {
-    const id = req.url.split('/')[4];
+    const unique_id = req.url.split('/')[4];
     try {
-        const result = await qry('SELECT * FROM images WHERE id=?', [id]);
+        const result = await qry(
+            `SELECT images.unique_id, images.title, images.image, albums.unique_id as album_id 
+             FROM images 
+             JOIN albums ON images.album_id = albums.id WHERE images.unique_id=?`, [unique_id]);
         if (result.length > 0) {
             res.statusCode = 200;
             res.end(JSON.stringify(result));
@@ -135,7 +159,7 @@ export const getImageById = async (req, res) => {
 
 export const updateImage = async (req, res) => {
     let body = '';
-    const id = req.url.split('/')[4];
+    const unique_id = req.url.split('/')[4];
     req.on('data', (chunk) => {
         body += chunk.toString();
     });
@@ -146,29 +170,43 @@ export const updateImage = async (req, res) => {
             return;
         }
         const { title, image, album_id } = JSON.parse(body);
+        if (!title) {
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: 'Image title is required!' }));
+            return;
+        }
+
+        if (!image) {
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: 'Image is required!' }));
+            return;
+        }
+
+        if (!album_id) {
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: 'Album ID is required!' }));
+            return;
+        }
+
+        const isOwner = await validateOwnership('images', unique_id, req, res);
+        if (!isOwner) {
+            return;
+        }
+
         try {
-            if (!title) {
-                res.statusCode = 400;
-                res.end(JSON.stringify({ error: 'Image title is required!' }));
-                return;
-            }
-
-            if (!image) {
-                res.statusCode = 400;
-                res.end(JSON.stringify({ error: 'Image is required!' }));
-                return;
-            }
-
-            if (!album_id) {
-                res.statusCode = 400;
-                res.end(JSON.stringify({ error: 'Album ID is required!' }));
-                return;
-            }
 
             checkAlbumExists(album_id, res);
-            const result = await qry('UPDATE images SET title = ?, image = ?, album_id = ? WHERE id = ?', [title, image, album_id, id]);
+            const albumOriginalId = await getAlbumIdByUniqueId(album_id);
+
+            const result = await qry('UPDATE images SET title = ?, image = ?, album_id = ? WHERE unique_id = ?', [title, image, albumOriginalId, unique_id]);
             if (result.affectedRows > 0) {
-                const image = await qry('SELECT * FROM images WHERE id = ?', [id]);
+                const image = await qry(
+                    `SELECT images.unique_id, images.title, images.image, albums.unique_id as album_id 
+                     FROM images 
+                     JOIN albums ON images.album_id = albums.id 
+                     WHERE images.unique_id = ?`,
+                    [unique_id]
+                  );
                 res.statusCode = 200;
                 res.end(JSON.stringify(image[0]));
             }
@@ -186,50 +224,62 @@ export const updateImage = async (req, res) => {
 
 export const updateImagePatch = async (req, res) => {
     let body = '';
-    const id = req.url.split('/')[4];
+    const unique_id = req.url.split('/')[4];
 
     req.on('data', (chunk) => {
         body += chunk.toString();
     });
 
     req.on('end', async () => {
-        try {
-            const { title, image, album_id } = JSON.parse(body);
+        const { title, image, album_id } = JSON.parse(body);
 
-            if (!title && !image && !album_id) {
-                res.statusCode = 400;
-                res.end(JSON.stringify({ error: 'At least one of title, image or album id is required!' }));
-                return;
-            }
+        if (!title && !image && !album_id) {
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: 'At least one of title, image or album id is required!' }));
+            return;
+        }
+        const updateFields = [];
+        const updateValues = [];
 
-            const updateFields = [];
-            const updateValues = [];
+        if (title) {
+            updateFields.push('title = ?');
+            updateValues.push(title);
+        }
 
-            if (title) {
-                updateFields.push('title = ?');
-                updateValues.push(title);
-            }
+        if (image) {
+            updateFields.push('image = ?');
+            updateValues.push(image);
+        }
 
-            if (image) {
-                updateFields.push('image = ?');
-                updateValues.push(image);
-            }
-
-            if (album_id) {
-                checkAlbumExists(album_id, res);
-                updateFields.push('album_id = ?');
-                updateValues.push(album_id);
-            }
+        if (album_id) {
+            checkAlbumExists(album_id, res);
+            const albumOriginalId = await getAlbumIdByUniqueId(album_id);
+            updateFields.push('album_id = ?');
+            updateValues.push(albumOriginalId);
+        }
 
             // Adding the album ID at the end of the parameters
-            updateValues.push(id);
+        updateValues.push(unique_id);
 
-            const sqlQuery = `UPDATE images SET ${updateFields.join(', ')} WHERE id = ?`;
+        const isOwner = await validateOwnership('images', unique_id, req, res);
+        if (!isOwner) {
+            return;
+        }
+
+        try {
+            
+            const sqlQuery = `UPDATE images SET ${updateFields.join(', ')} WHERE unique_id = ?`;
 
             const result = await qry(sqlQuery, updateValues);
 
             if (result.affectedRows > 0) {
-                const image = await qry('SELECT * FROM images WHERE id = ?', [id]);
+                const image = await qry(
+                    `SELECT images.unique_id, images.title, images.image, albums.unique_id as album_id 
+                     FROM images 
+                     JOIN albums ON images.album_id = albums.id 
+                     WHERE images.unique_id = ?`,
+                    [unique_id]
+                  );
                 res.statusCode = 200;
                 res.end(JSON.stringify(image[0]));
             } else {
@@ -244,9 +294,13 @@ export const updateImagePatch = async (req, res) => {
 };
 
 export const deleteImage = async (req, res) => {
-    const id = req.url.split('/')[4];
+    const unique_id = req.url.split('/')[4];
+    const isOwner = await validateOwnership('images', unique_id, req, res);
+    if (!isOwner) {
+        return;
+    }
     try {
-        const result = await qry('DELETE FROM images WHERE id = ?', [id]);
+        const result = await qry('DELETE FROM images WHERE unique_id = ?', [unique_id]);
         if (result.affectedRows > 0) {
             res.statusCode = 200;
             res.end(JSON.stringify({ message: 'Image Removed' }));
@@ -263,10 +317,20 @@ export const deleteImage = async (req, res) => {
 }
 
 const checkAlbumExists = async (album_id, res) => {
-    const result = await qry('SELECT id FROM albums WHERE id = ?', [album_id]);
+    const result = await qry('SELECT id FROM albums WHERE unique_id = ?', [album_id]);
     if (result.length === 0) {
         res.statusCode = 404;
         res.end(JSON.stringify({ error: 'Album not found!' }));
         return;
     }
 }
+
+const getAlbumIdByUniqueId = async (unique_id) => {
+    try {
+        const result = await qry('SELECT id FROM albums WHERE unique_id = ?', [unique_id]);
+        return result[0].id;
+    } catch (error) {
+        console.error('Query Error:', error);
+        throw error;
+    }
+};
